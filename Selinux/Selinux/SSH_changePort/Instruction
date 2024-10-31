@@ -1,0 +1,39 @@
+
+#Oto podsumowanie kroków edycji portu SSH z konfiguracją SELinux:
+
+#Zmiana portu SSH i konfiguracja SELinux
+
+#Edytuj konfigurację SSH, aby zmienić port:
+
+sudo nano /etc/ssh/sshd_config
+
+Port 2222
+
+#Dodaj nowy port do SELinux:
+
+sudo semanage port -a -t ssh_port_t -p tcp 2222
+
+#Jeśli port już istnieje, użyj -m zamiast -a:
+
+
+sudo semanage port -m -t ssh_port_t -p tcp 2222
+#Dodaj port do firewalla (jeśli firewall jest włączony):
+
+
+sudo firewall-cmd --permanent --add-port=2222/tcp
+sudo firewall-cmd --reload
+
+#Uruchom ponownie usługę SSH:
+
+
+sudo systemctl restart sshd
+#Przetestuj połączenie SSH na nowym porcie:
+
+
+ssh -p 2222 użytkownik@twoja_adres_ip
+
+#Monitorowanie SELinux dla SSH:
+
+#Sprawdź logi SELinux dla ewentualnych problemów:
+
+sudo ausearch -m avc -c sshd

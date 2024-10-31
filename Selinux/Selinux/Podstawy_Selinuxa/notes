@@ -1,0 +1,83 @@
+Podstawy SELinux
+
+Czym jest SELinux?
+SELinux (Security-Enhanced Linux) to system kontroli dostępu, który zapewnia dodatkowy poziom zabezpieczeń w systemach operacyjnych Linux. 
+Implementuje politykę bezpieczeństwa, która kontroluje, jakie operacje użytkownicy i procesy mogą wykonywać na plikach, 
+zasobach systemowych i innych procesach.
+
+Tryby pracy SELinux
+
+Enforcing – Polityka SELinux jest aktywna i wymuszana; operacje naruszające politykę są blokowane.
+Permissive – Polityka SELinux jest aktywna, ale operacje naruszające politykę nie są blokowane, a jedynie logowane. Tryb ten jest przydatny do debugowania.
+Disabled – SELinux jest wyłączony, a polityki bezpieczeństwa nie są stosowane.
+
+Sprawdzenie trybu:
+sestatus
+
+
+Przełączenie trybu:
+
+
+sudo setenforce 0   # Permissive
+sudo setenforce 1   # Enforcing
+
+Polityki SELinux
+
+Targeted: Domyślna polityka, chroniąca wybrane procesy i usługi.
+MLS (Multi-Level Security): Złożona polityka stosowana w środowiskach o wysokim poziomie bezpieczeństwa.
+K
+onteksty SELinux
+Każdy plik, proces, port i zasób mają przypisany kontekst, który składa się z czterech części: user:role:type:level.
+
+Type: Najważniejszy element, określający typ zasobu lub proces.
+Role, User, Level: Odpowiednio określają rolę, użytkownika SELinux i poziom bezpieczeństwa (używany w MLS).
+Sprawdzenie kontekstu pliku:
+
+
+ls -Z /ścieżka/do/pliku
+
+
+Podstawowe komendy SELinux
+
+sestatus: Wyświetla stan SELinux oraz aktywną politykę.
+
+sestatus
+chcon: Tymczasowo zmienia kontekst pliku lub katalogu.
+
+sudo chcon -t httpd_sys_content_t /ścieżka/do/pliku
+
+restorecon: Przywraca domyślny kontekst na plikach/katalogach.
+
+
+sudo restorecon -R /ścieżka/do/katalogu
+
+semanage: Zarządza trwałymi konfiguracjami SELinux (konteksty, porty, booleany).
+
+sudo semanage fcontext -a -t httpd_sys_content_t "/srv/www(/.*)?"
+sudo restorecon -R /srv/www
+
+
+Booleany SELinux
+SELinux posiada booleany, które umożliwiają elastyczne włączanie lub wyłączanie konkretnych opcji polityki.
+
+Wyswietlanie booleany
+getsebool -a
+
+Włączanie/wyłączanie booleanów:
+
+sudo setsebool -P httpd_enable_homedirs 1
+L
+
+ogowanie i monitorowanie naruszeń SELinux
+Logi SELinux są zapisywane w /var/log/audit/audit.log. Naruszenia są rejestrowane jako zdarzenia AVC.
+
+ausearch: Wyszukiwanie naruszeń w logach.
+
+sudo ausearch -m avc -c httpd
+
+
+audit2why i audit2allow: Analiza i tworzenie wyjątków na podstawie naruszeń.
+
+sudo ausearch -c httpd | audit2why
+sudo ausearch -c httpd | audit2allow -M my_httpd_policy
+sudo semodule -i my_httpd_policy.pp

@@ -1,0 +1,81 @@
+Projekt: Tworzenie niestandardowej polityki SELinux dla aplikacji webowej działającej w Dockerze
+Celem tego projektu jest skonfigurowanie niestandardowej polityki SELinux, która będzie kontrolować dostęp aplikacji
+ webowej działającej w kontenerze Docker. Dzięki temu ograniczymy dostęp aplikacji do tylko niezbędnych zasobów systemowych, co znacząco podniesie poziom bezpieczeństwa.
+
+1) Kroki projektu
+Instalacja Dockera
+
+Zainstaluj Dockera (jeśli nie jest już zainstalowany):
+
+
+sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io
+sudo systemctl start docker
+sudo systemctl enable docker
+
+
+2) Tworzenie katalogu dla aplikacji webowej
+
+Utwórz katalog, w którym będą przechowywane dane aplikacji webowej:
+
+
+sudo mkdir -p /srv/myapp_data
+echo "Hello from my secure app!" | sudo tee /srv/myapp_data/index.html
+
+
+3) Ustawienie kontekstu SELinux dla katalogu aplikacji
+
+Przypisz kontekst container_file_t do katalogu, aby Docker mógł uzyskać dostęp do danych aplikacji:
+
+sudo semanage fcontext -a -t container_file_t "/srv/myapp_data(/.*)?"
+sudo restorecon -R /srv/myapp_data
+
+
+4) Uruchomienie kontenera Dockera z aplikacją
+
+Uruchom kontener z serwerem Nginx, który będzie obsługiwał zawartość z katalogu /srv/myapp_data:
+
+
+sudo docker run -d --name myapp -p 8080:80 -v /srv/myapp_data:/usr/share/nginx/html:ro nginx
+
+5) Sprawdzenie logów SELinux
+
+Aby zobaczyć, czy SELinux blokuje jakiekolwiek działania kontenera, sprawdź logi SELinux:
+
+
+sudo ausearch -m avc -c nginx
+Tworzenie niestandardowej polityki SELinux na podstawie logów
+
+6 ) Jeśli SELinux blokuje działania aplikacji, możesz użyć audit2allow, aby wygenerować moduł polityki, który pozwoli na te działania:
+
+
+sudo ausearch -c nginx | audit2allow -M myapp_policy
+Ta komenda wygeneruje moduł polityki o nazwie myapp_policy.
+
+7) Instalacja niestandardowej polityki SELinux
+
+Zainstaluj moduł polityki w systemie:
+  
+sudo semodule -i myapp_policy.pp
+Testowanie polityki
+
+8) Uruchom ponownie kontener Dockera i przetestuj, czy aplikacja działa zgodnie z nową polityką SELinux:
+
+sudo docker restart myapp
+
+
+9) Ponownie sprawdź logi SELinux, aby upewnić się, że nie pojawiają się nowe naruszenia.
+
+Dalsze dostosowywanie polityki
+
+Jeśli w logach pojawią się kolejne błędy SELinux, możesz iteracyjnie rozbudowywać niestandardowy moduł polityki, dodając kolejne pozwolenia:
+
+
+sudo ausearch -c nginx | audit2allow -M myapp_policy_additional
+sudo semodule -i myapp_policy_additional.pp
+Możesz również edytować plik .te z kodem polityki, aby ręcznie dostosować uprawnienia przed ponowną kompilacją.
+
+Dokumentowanie i utrzymywanie polityki
+
+
+

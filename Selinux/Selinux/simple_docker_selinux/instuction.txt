@@ -1,0 +1,74 @@
+Projekt: Konfiguracja i zabezpieczenie aplikacji działającej w 
+kontenerze Docker przy użyciu SELinux na Red Hat
+
+
+Dodanie repozytorium Docker i instalacja
+
+Następnie dodaj repozytorium Docker i zainstaluj Docker CE:
+
+sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io
+
+
+Uruchomienie i włączenie Dockera
+
+Uruchom Docker i ustaw go tak, aby startował automatycznie przy uruchomieniu systemu:
+
+sudo systemctl start docker
+sudo systemctl enable docker
+
+
+
+Tworzenie katalogu do udostępniania danych
+
+Utwórz katalog, który będzie udostępniany kontenerowi, np. /srv/docker_data:
+
+
+sudo mkdir -p /srv/docker_data
+echo "Hello, Docker + SELinux!" | sudo tee /srv/docker_data/index.html
+
+
+Ustawienie kontekstu SELinux dla katalogu danych
+
+Aby Docker miał dostęp do tego katalogu,
+przypisz odpowiedni kontekst SELinux. 
+Docker używa typu container_file_t dla zasobów, do których kontenery mają mieć dostęp:
+
+
+sudo semanage fcontext -a -t container_file_t "/srv/docker_data(/.*)?"
+sudo restorecon -R /srv/docker_data
+
+
+Uruchomienie kontenera z aplikacją (np. serwerem WWW)
+
+Teraz uruchom kontener z serwerem Nginx i zamontuj katalog /srv/docker_data w kontenerze:
+
+sudo docker run -d --name nginx_container -p 8080:80 -v /srv/docker_data:/usr/share/nginx/html:ro nginx
+
+
+ dostępu do strony
+
+Otwórz przeglądarkę i przejdź pod adres http://localhost:8080,
+ aby zobaczyć zawartość pliku index.html z katalogu /srv/docker_data.
+
+Monitorowanie naruszeń SELinux
+
+Jeśli napotkasz problemy z dostępem, przejrzyj logi SELinux, aby zidentyfikować potencjalne blokady:
+
+
+sudo ausearch -m avc -c nginx
+
+Włączanie dodatkowych booleanów SELinux dla Dockera
+
+SELinux udostępnia kilka booleanów, które mogą być przydatne przy pracy z Dockerem. Przykłady:
+
+
+sudo setsebool -P container_manage_cgroup 1
+Inne booleany, które mogą być przydatne:
+
+container_manage_cgroup: Pozwala kontenerom na zarządzanie grupami kontrolnymi (cgroups).
+container_use_cephfs: Pozwala na korzystanie z CephFS w kontenerach.
+container_use_execmem: Pozwala kontenerom na użycie pamięci wykonywalnej.
+Podsumowanie
+Po zakończeniu tego projektu aplikacja działająca w kontenerze Docker będzie miała bezpieczny dostęp do udostępnionych zasobów, 
+zgodnie z polityką SELinux. Dzięki temu kontener nie będzie mógł uzyskać dostępu do zasobów poza przydzielonym katalogiem, co zapewnia dodatkowe bezpieczeństwo.

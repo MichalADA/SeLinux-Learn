@@ -1,0 +1,29 @@
+# Zainstaluj Apache
+sudo dnf install httpd -y
+
+# Utwórz katalog dla plików statycznych i dodaj przykładowy plik
+sudo mkdir -p /srv/www
+echo "Hello, SELinux!" | sudo tee /srv/www/index.html
+
+# Ustaw kontekst SELinux dla katalogu
+sudo semanage fcontext -a -t httpd_sys_content_t "/srv/www(/.*)?"
+sudo restorecon -R /srv/www
+
+# Skonfiguruj plik httpd.conf:
+# - Ustaw DocumentRoot na /srv/www
+# - Zaktualizuj sekcję Directory na:
+# <Directory "/srv/www">
+#     AllowOverride None
+#     Require all granted
+# </Directory>
+# Dodaj też ServerName localhost, aby uniknąć ostrzeżeń.
+
+# Uruchom i włącz Apache
+sudo systemctl start httpd
+sudo systemctl enable httpd
+
+# Wyłącz firewall, jeśli blokuje dostęp
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+
+# Sprawdź działanie na http://localhost
