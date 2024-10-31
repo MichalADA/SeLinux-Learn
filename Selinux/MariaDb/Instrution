@@ -1,0 +1,78 @@
+Projekt: Konfiguracja i Zabezpieczenie Serwera MySQL (MariaDB) z SELinux
+W tym projekcie skonfigurujemy serwer MySQL (lub MariaDB) i zastosujemy SELinux, aby kontrolować dostęp do jego danych. 
+Dzięki odpowiednim ustawieniom SELinux będziemy mogli zabezpieczyć katalogi bazy danych i ograniczyć dostęp innych procesów do tych zasobów.
+
+Kroki projektu
+Instalacja MariaDB
+
+sudo dnf install mariadb-server -y
+
+
+Uruchomienie i włączenie serwera MariaDB
+
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
+
+
+Konfiguracja bezpieczeństwa MariaDB
+
+Użyj skryptu konfiguracyjnego, aby zwiększyć bezpieczeństwo bazy danych:
+
+sudo mysql_secure_installation
+
+
+Przejdź przez kroki skryptu, ustawiając hasło roota i usuwając niepotrzebne dane testowe.
+Utworzenie katalogu danych dla MariaDB
+
+sudo mkdir -p /srv/mariadb
+sudo chown mysql:mysql /srv/mariadb
+
+
+Skopiuj lub przenieś obecne dane:
+
+sudo rsync -av /var/lib/mysql/ /srv/mariadb/
+
+
+Zaktualizuj konfigurację MariaDB, wskazując na nową lokalizację danych w /etc/my.cnf.d/mariadb-server.cnf:
+
+[mysqld]
+datadir=/srv/mariadb
+
+
+Ustawienie kontekstu SELinux dla nowej lokalizacji danych
+
+Przypisz kontekst SELinux dla nowego katalogu z danymi, aby MariaDB mogła do niego uzyskać dostęp:
+
+sudo semanage fcontext -a -t mysqld_db_t "/srv/mariadb(/.*)?"
+sudo restorecon -R /srv/mariadb
+
+
+Dostosowanie SELinux do zarządzania MariaDB
+
+W zależności od potrzeb możesz włączyć lub wyłączyć boolean SELinux dla MariaDB. 
+Przykładowo, aby umożliwić MariaDB korzystanie z sieci (jeśli np. baza danych jest dostępna zdalnie), 
+włącz boolean mysql_connect_any:
+
+sudo setsebool -P mysql_connect_any 1
+
+
+Dostosowanie firewalla dla MariaDB
+
+Otwórz port 3306 (domyślny port MariaDB), jeśli planujesz dostęp zdalny:
+
+sudo firewall-cmd --permanent --add-port=3306/tcp
+sudo firewall-cmd --reload
+Restart serwera MariaDB i testowanie
+
+Uruchom ponownie MariaDB, aby zastosować zmiany:
+
+sudo systemctl restart mariadb
+
+Monitorowanie naruszeń SELinux
+
+Jeśli coś pójdzie nie tak, sprawdź logi SELinux, aby zidentyfikować potencjalne problemy z dostępem:
+
+sudo ausearch -m avc -c mysqld
+Podsumowanie
+Po zakończeniu tego projektu serwer MySQL/MariaDB będzie działał w niestandardowej lokalizacji danych, 
+a SELinux będzie kontrolował dostęp do tych danych, zapobiegając nieautoryzowanym próbom dostępu.

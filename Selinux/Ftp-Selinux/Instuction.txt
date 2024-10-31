@@ -1,0 +1,73 @@
+Projekt: Konfiguracja i Zabezpieczenie Serwera FTP z SELinux
+W tym projekcie skonfigurujemy serwer FTP (np. vsftpd) na Red Hat i użyjemy SELinux do kontrolowania dostępu do określonych katalogów. 
+Zabezpieczymy serwer, definiując odpowiednie konteksty SELinux, aby ograniczyć dostęp tylko do wybranych zasobów.
+
+Krok po kroku
+Instalacja vsftpd
+
+sudo dnf install vsftpd -y
+
+
+Konfiguracja vsftpd
+
+Edytuj plik konfiguracyjny vsftpd:
+
+sudo nano /etc/vsftpd/vsftpd.conf
+
+
+Upewnij się, że poniższe linie są ustawione, aby umożliwić dostęp tylko do określonych katalogów użytkowników:
+plaintext
+Skopiuj kod
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+chroot_local_user=YES
+Zapisz i zamknij plik.
+
+
+Utwórz katalog dla plików FTP
+
+Stwórz katalog FTP, który będzie dostępny dla użytkowników:
+
+sudo mkdir -p /srv/ftp/upload
+sudo chown ftp:ftp /srv/ftp/upload
+Ustaw kontekst SELinux dla katalogu FTP
+
+Przypisz odpowiedni kontekst SELinux do katalogu, aby umożliwić serwerowi vsftpd dostęp do niego. 
+Typowy kontekst dla FTP to public_content_t lub ftp_home_dir_t:
+
+sudo semanage fcontext -a -t public_content_t "/srv/ftp(/.*)?"
+sudo restorecon -R /srv/ftp
+
+
+Jeśli chcesz, aby użytkownicy mogli również pisać do tego katalogu:
+
+
+sudo setsebool -P allow_ftpd_full_access 1
+
+
+Dostosowanie firewalla
+
+Upewnij się, że porty FTP są otwarte:
+
+sudo firewall-cmd --permanent --add-service=ftp
+sudo firewall-cmd --reload
+
+
+Uruchom i przetestuj serwer FTP
+
+Uruchom serwer vsftpd:
+
+sudo systemctl start vsftpd
+sudo systemctl enable vsftpd
+
+Przetestuj połączenie FTP za pomocą klienta FTP lub polecenia:
+
+ftp localhost
+
+
+Monitorowanie naruszeń SELinux
+
+Sprawdź logi SELinux, aby upewnić się, że nie występują problemy z dostępem:
+
+sudo ausearch -m avc -c vsftpd

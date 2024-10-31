@@ -1,0 +1,79 @@
+Komenda semanage jest używana do zarządzania różnymi aspektami SELinux, 
+takimi jak porty, konteksty, użytkownicy i polityki. 
+Pozwala na tworzenie i modyfikowanie reguł SELinux bez konieczności bezpośredniego edytowania plików konfiguracyjnych. 
+Oto najważniejsze parametry semanage i ich funkcje:
+
+1. Podstawowa składnia semanage
+semanage [sub-komenda] [opcje]
+W semanage używamy różnych sub-komend, aby zarządzać poszczególnymi elementami, jak porty, konteksty, użytkownicy itd.
+
+2. Najważniejsze sub-komendy
+semanage port: Zarządza portami używanymi przez usługi w SELinux.
+
+Przykład: Dodanie portu 2222 dla SSH:
+semanage port -a -t ssh_port_t -p tcp 2222
+Parametry:
+-a – Dodaje nową regułę.
+-m – Modyfikuje istniejącą regułę.
+-d – Usuwa regułę.
+-t – Typ kontekstu (np. ssh_port_t dla SSH).
+-p – Protokół (np. tcp lub udp).
+semanage fcontext: Zarządza kontekstami plików. Umożliwia definiowanie, jakie konteksty SELinux mają mieć pliki w określonych lokalizacjach.
+
+Przykład: Przypisanie kontekstu httpd_sys_content_t do plików w /srv/www:
+
+semanage fcontext -a -t httpd_sys_content_t "/srv/www(/.*)?"
+Parametry:
+-a – Dodaje regułę kontekstu.
+-m – Modyfikuje istniejącą regułę kontekstu.
+-d – Usuwa regułę kontekstu.
+-t – Typ kontekstu (np. httpd_sys_content_t dla serwera WWW).
+semanage boolean: Zarządza booleanami SELinux, które są używane do włączania lub wyłączania poszczególnych opcji polityki SELinux.
+
+Przykład: Włączenie booleana httpd_enable_homedirs, aby Apache miał dostęp do katalogów domowych:
+bash
+Skopiuj kod
+semanage boolean -m --on httpd_enable_homedirs
+Parametry:
+-m – Modyfikuje wartość booleana.
+--on lub --off – Ustawia wartość booleana na on lub off.
+semanage login: Zarządza mapowaniem użytkowników systemowych na użytkowników SELinux. Dzięki temu możemy kontrolować, jakie konteksty SELinux przypisywane są poszczególnym użytkownikom.
+
+Przykład: Przypisanie kontekstu user_u użytkownikowi janek:
+
+semanage login -a -s user_u janek
+Parametry:
+-a – Dodaje nowe mapowanie użytkownika.
+-m – Modyfikuje istniejące mapowanie.
+-d – Usuwa mapowanie użytkownika.
+-s – Typ użytkownika SELinux (np. user_u).
+semanage user: Zarządza użytkownikami SELinux. Pozwala na przypisywanie polityk do użytkowników SELinux.
+
+Przykład: Tworzenie użytkownika SELinux z dostępem do domyślnej roli:
+
+semanage user -a -R "staff_r" janek_u
+Parametry:
+-a – Dodaje nowego użytkownika SELinux.
+-m – Modyfikuje istniejącego użytkownika.
+-d – Usuwa użytkownika SELinux.
+-R – Przypisuje rolę do użytkownika SELinux.
+
+
+Przykładowe użycie semanage
+
+Dodanie niestandardowego portu dla usługi:
+
+
+semanage port -a -t http_port_t -p tcp 8080
+To polecenie dodaje port 8080 dla usługi httpd.
+
+Przypisanie kontekstu do katalogu:
+
+
+semanage fcontext -a -t var_log_t "/mylogs(/.*)?"
+To polecenie przypisuje kontekst var_log_t do katalogu /mylogs.
+
+Włączenie booleana dla SELinux:
+
+
+semanage boolean -m --on httpd_can_network_connect
